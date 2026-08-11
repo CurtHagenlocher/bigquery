@@ -33,6 +33,20 @@
 
 The BigQuery ADBC driver wraps a [BigQueryClient](https://cloud.google.com/dotnet/docs/reference/Google.Cloud.BigQuery.V2/latest/Google.Cloud.BigQuery.V2.BigQueryClient) object for working with [BigQuery](https://cloud.google.com/bigquery/) data.
 
+# Native AOT
+
+Source builds can opt into the trimming and AOT-compatible [Clast](https://github.com/clast-project/google-cloud-dotnet) republish of the Google BigQuery packages. The flag also adds the `net10.0` target:
+
+```sh
+dotnet build AdbcDrivers.BigQuery.sln -p:UseClastPackages=true
+```
+
+The `AdbcDrivers.BigQuery.Native` project publishes the driver as a NativeAOT shared library that exports the standard ADBC `AdbcDriverInit` entry point:
+
+```sh
+dotnet publish src/AdbcDrivers.BigQuery.Native/AdbcDrivers.BigQuery.Native.csproj -c Release -r <rid>
+```
+
 # Supported Features
 
 ## Authentication

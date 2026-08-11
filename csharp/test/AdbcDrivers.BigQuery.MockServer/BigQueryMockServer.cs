@@ -39,6 +39,11 @@ namespace AdbcDrivers.BigQuery.MockServer
     /// </summary>
     public sealed class BigQueryMockServer : IDisposable
     {
+#if USE_CLAST_PACKAGES
+        private static readonly IJsonSerializer s_jsonSerializer = SystemTextJsonSerializer.Instance;
+#else
+        private static readonly IJsonSerializer s_jsonSerializer = NewtonsoftJsonSerializer.Instance;
+#endif
         private readonly WebApplication _restApp;
         private readonly WebApplication _grpcApp;
         private readonly CancellationTokenSource _cts = new();
@@ -135,9 +140,7 @@ namespace AdbcDrivers.BigQuery.MockServer
 
         private void MapRestRoutes(WebApplication app)
         {
-            // The Google.Apis BigQuery client serializes/deserializes using
-            // Google.Apis.Json.NewtonsoftJsonSerializer. We must return JSON
-            // produced by the same serializer operating on the real model classes.
+            // Use the serializer from the selected Google APIs package family.
 
             // POST /bigquery/v2/projects/{projectId}/jobs - Create a query job
             app.MapPost("/bigquery/v2/projects/{projectId}/jobs", async (HttpContext ctx, string projectId) =>
@@ -157,7 +160,7 @@ namespace AdbcDrivers.BigQuery.MockServer
                 Job? jobRequest = null;
                 try
                 {
-                    jobRequest = NewtonsoftJsonSerializer.Instance.Deserialize<Job>(body);
+                    jobRequest = s_jsonSerializer.Deserialize<Job>(body);
                 }
                 catch
                 {
@@ -209,7 +212,7 @@ namespace AdbcDrivers.BigQuery.MockServer
                 _jobs[jobId] = mockJob;
 
                 var job = CreateJobResource(mockJob);
-                string json = NewtonsoftJsonSerializer.Instance.Serialize(job);
+                string json = s_jsonSerializer.Serialize(job);
                 ctx.Response.ContentType = "application/json";
                 await ctx.Response.WriteAsync(json);
             });
@@ -224,7 +227,7 @@ namespace AdbcDrivers.BigQuery.MockServer
                 }
 
                 var job = CreateJobResource(mockJob);
-                string json = NewtonsoftJsonSerializer.Instance.Serialize(job);
+                string json = s_jsonSerializer.Serialize(job);
                 ctx.Response.ContentType = "application/json";
                 await ctx.Response.WriteAsync(json);
             });
@@ -253,7 +256,7 @@ namespace AdbcDrivers.BigQuery.MockServer
                     },
                 };
 
-                string json = NewtonsoftJsonSerializer.Instance.Serialize(response);
+                string json = s_jsonSerializer.Serialize(response);
                 ctx.Response.ContentType = "application/json";
                 await ctx.Response.WriteAsync(json);
             });
@@ -270,7 +273,7 @@ namespace AdbcDrivers.BigQuery.MockServer
                     return;
                 }
 
-                string json = NewtonsoftJsonSerializer.Instance.Serialize(table);
+                string json = s_jsonSerializer.Serialize(table);
                 ctx.Response.ContentType = "application/json";
                 await ctx.Response.WriteAsync(json);
             });
@@ -290,7 +293,7 @@ namespace AdbcDrivers.BigQuery.MockServer
                     using var reader = new System.IO.StreamReader(ctx.Request.Body);
                     body = await reader.ReadToEndAsync();
                 }
-                var table = NewtonsoftJsonSerializer.Instance.Deserialize<Table>(body);
+                var table = s_jsonSerializer.Deserialize<Table>(body);
                 if (table == null)
                 {
                     ctx.Response.StatusCode = 400;
@@ -321,7 +324,7 @@ namespace AdbcDrivers.BigQuery.MockServer
                 table.Kind = "bigquery#table";
                 _tables[key] = table;
 
-                string json = NewtonsoftJsonSerializer.Instance.Serialize(table);
+                string json = s_jsonSerializer.Serialize(table);
                 ctx.Response.ContentType = "application/json";
                 ctx.Response.StatusCode = 200;
                 await ctx.Response.WriteAsync(json);

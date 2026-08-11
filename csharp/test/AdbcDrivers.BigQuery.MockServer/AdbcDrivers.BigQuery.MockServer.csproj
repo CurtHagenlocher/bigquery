@@ -3,10 +3,15 @@
     <TargetFramework>net8.0</TargetFramework>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(UseClastPackages)' == 'true'">
+    <DefineConstants>$(DefineConstants);USE_CLAST_PACKAGES</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Google.Cloud.BigQuery.Storage.V1" />
-    <PackageReference Include="Google.Cloud.BigQuery.V2" />
+    <PackageReference Include="Google.Cloud.BigQuery.Storage.V1" Condition="'$(UseClastPackages)' != 'true'" />
+    <PackageReference Include="Google.Cloud.BigQuery.V2" Condition="'$(UseClastPackages)' != 'true'" />
+    <PackageReference Include="Clast.Google.Cloud.BigQuery.Storage.V1" Condition="'$(UseClastPackages)' == 'true'" />
+    <PackageReference Include="Clast.Google.Cloud.BigQuery.V2" Condition="'$(UseClastPackages)' == 'true'" />
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Apache.Arrow" />
   </ItemGroup>

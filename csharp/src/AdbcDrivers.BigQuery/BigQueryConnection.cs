@@ -553,7 +553,11 @@ namespace AdbcDrivers.BigQuery
                     if (!this.properties.TryGetValue(BigQueryParameters.JsonCredential, out json))
                         throw new ArgumentException($"The {BigQueryParameters.JsonCredential} parameter is not present");
 
+#if USE_CLAST_PACKAGES
+                    Credential = ApplyScopes(CredentialFactory.FromJson<ServiceAccountCredential>(json).ToGoogleCredential());
+#else
                     Credential = ApplyScopes(GoogleCredential.FromJson(json));
+#endif
                 }
                 else if (!string.IsNullOrEmpty(authenticationType) && authenticationType.Equals(BigQueryConstants.MockAuthenticationType, StringComparison.OrdinalIgnoreCase))
                 {
@@ -1914,7 +1918,8 @@ namespace AdbcDrivers.BigQuery
             response.EnsureSuccessStatusCode();
             string responseBody = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
-            BigQueryTokenResponse? bigQueryTokenResponse = JsonSerializer.Deserialize<BigQueryTokenResponse>(responseBody);
+            BigQueryTokenResponse? bigQueryTokenResponse =
+                JsonSerializer.Deserialize(responseBody, BigQueryJsonContext.Default.BigQueryTokenResponse);
 
             return bigQueryTokenResponse?.AccessToken;
         }
@@ -1929,17 +1934,17 @@ namespace AdbcDrivers.BigQuery
         {
             try
             {
-                var requestBody = new
+                BigQueryStsTokenRequest requestBody = new BigQueryStsTokenRequest
                 {
-                    scope = BigQueryConstants.EntraIdScope,
-                    subjectToken = entraAccessToken,
-                    audience = audience,
-                    grantType = BigQueryConstants.EntraGrantType,
-                    subjectTokenType = BigQueryConstants.EntraSubjectTokenType,
-                    requestedTokenType = BigQueryConstants.EntraRequestedTokenType
+                    Scope = BigQueryConstants.EntraIdScope,
+                    SubjectToken = entraAccessToken,
+                    Audience = audience,
+                    GrantType = BigQueryConstants.EntraGrantType,
+                    SubjectTokenType = BigQueryConstants.EntraSubjectTokenType,
+                    RequestedTokenType = BigQueryConstants.EntraRequestedTokenType
                 };
 
-                string json = JsonSerializer.Serialize(requestBody);
+                string json = JsonSerializer.Serialize(requestBody, BigQueryJsonContext.Default.BigQueryStsTokenRequest);
                 using StringContent content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 using HttpResponseMessage response = this.httpClient.PostAsync(BigQueryConstants.EntraStsTokenEndpoint, content).GetAwaiter().GetResult();
@@ -1947,7 +1952,8 @@ namespace AdbcDrivers.BigQuery
 
                 string responseBody = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
-                BigQueryStsTokenResponse? bigQueryTokenResponse = JsonSerializer.Deserialize<BigQueryStsTokenResponse>(responseBody);
+                BigQueryStsTokenResponse? bigQueryTokenResponse =
+                    JsonSerializer.Deserialize(responseBody, BigQueryJsonContext.Default.BigQueryStsTokenResponse);
 
                 return bigQueryTokenResponse?.AccessToken;
             }

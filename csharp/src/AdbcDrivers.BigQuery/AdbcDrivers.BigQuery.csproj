@@ -1,13 +1,26 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
+		<UseClastPackages>true</UseClastPackages>
+	</PropertyGroup>
 	<PropertyGroup>
-		<TargetFrameworks Condition="'$(IsWindows)'=='true'">netstandard2.0;net472;net8.0</TargetFrameworks>
-		<TargetFrameworks Condition="'$(TargetFrameworks)'==''">netstandard2.0;net8.0</TargetFrameworks>
+		<TargetFrameworks Condition="'$(UseClastPackages)' == 'true' and '$(IsWindows)' == 'true'">netstandard2.0;net472;net8.0;net10.0</TargetFrameworks>
+		<TargetFrameworks Condition="'$(UseClastPackages)' == 'true' and '$(TargetFrameworks)' == ''">netstandard2.0;net8.0;net10.0</TargetFrameworks>
+		<TargetFrameworks Condition="'$(IsWindows)' == 'true' and '$(TargetFrameworks)' == ''">netstandard2.0;net472;net8.0</TargetFrameworks>
+		<TargetFrameworks Condition="'$(TargetFrameworks)' == ''">netstandard2.0;net8.0</TargetFrameworks>
 		<PackageReadmeFile>readme.md</PackageReadmeFile>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(UseClastPackages)' == 'true' and '$(TargetFramework)' == 'net10.0'">
+		<IsAotCompatible>true</IsAotCompatible>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(UseClastPackages)' == 'true'">
+		<DefineConstants>$(DefineConstants);USE_CLAST_PACKAGES</DefineConstants>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="System.Net.Http.WinHttpHandler" Condition="!$([MSBuild]::IsTargetFrameworkCompatible($(TargetFramework), 'net6.0'))" />
-		<PackageReference Include="Google.Cloud.BigQuery.Storage.V1" />
-		<PackageReference Include="Google.Cloud.BigQuery.V2" />
+		<PackageReference Include="Google.Cloud.BigQuery.Storage.V1" Condition="'$(UseClastPackages)' != 'true'" />
+		<PackageReference Include="Google.Cloud.BigQuery.V2" Condition="'$(UseClastPackages)' != 'true'" />
+		<PackageReference Include="Clast.Google.Cloud.BigQuery.Storage.V1" Condition="'$(UseClastPackages)' == 'true'" />
+		<PackageReference Include="Clast.Google.Cloud.BigQuery.V2" Condition="'$(UseClastPackages)' == 'true'" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Apache.Arrow.Adbc" />

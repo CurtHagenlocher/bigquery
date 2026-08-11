@@ -24,6 +24,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
 using Google;
 using Google.Apis.Requests;
 using Grpc.Core;
@@ -138,7 +139,10 @@ namespace AdbcDrivers.BigQuery
 
         internal static string GetAssemblyName(Type type) => type.Assembly.GetName().Name!;
 
-        internal static string GetAssemblyVersion(Type type) => FileVersionInfo.GetVersionInfo(type.Assembly.Location).ProductVersion ?? string.Empty;
+        internal static string GetAssemblyVersion(Type type) =>
+            type.Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ??
+            type.Assembly.GetName().Version?.ToString() ??
+            string.Empty;
 
         public static bool ContainsException<T>(Exception exception, out T? containedException) where T : Exception
         {

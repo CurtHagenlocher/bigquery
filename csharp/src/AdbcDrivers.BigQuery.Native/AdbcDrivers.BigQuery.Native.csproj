@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Publishes the BigQuery driver as a NativeAOT shared library exporting
+    AdbcDriverInit. A regular build produces a managed library; use
+    `dotnet publish -c Release -r <rid>` to produce the native driver.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <AssemblyName>adbc_driver_bigquery</AssemblyName>
+    <RootNamespace>AdbcDrivers.BigQuery.Native</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PublishAot>true</PublishAot>
+    <IsAotCompatible>true</IsAotCompatible>
+    <IsPackable>false</IsPackable>
+    <SignAssembly>false</SignAssembly>
+    <PublishRepositoryUrl>false</PublishRepositoryUrl>
+    <UseClastPackages>true</UseClastPackages>
+    <DefineConstants>$(DefineConstants);USE_CLAST_PACKAGES</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\AdbcDrivers.BigQuery\*.cs" Link="Driver\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Apache.Arrow.Adbc" />
+    <PackageReference Include="Apache.Arrow.Adbc.Telemetry.Traces.Listeners" />
+    <PackageReference Include="Clast.Google.Cloud.BigQuery.Storage.V1" />
+    <PackageReference Include="Clast.Google.Cloud.BigQuery.V2" />
+    <PackageReference Include="Google.Protobuf" />
+  </ItemGroup>
+</Project>

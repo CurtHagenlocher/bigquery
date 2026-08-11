@@ -57,7 +57,8 @@ jobs:
       matrix:
         # ubuntu builds and tests net8.0 (and netstandard2.0 for the driver lib).
         # windows additionally builds and tests net472 (gated by IsWindows in
-        # the csproj TargetFrameworks).
+        # the csproj TargetFrameworks). The .NET 10 SDK also builds the NativeAOT
+        # projects added to the solution; their native publish runs separately.
         os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -68,7 +69,7 @@ jobs:
 
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68  # v6.0.0
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Restore
         working-directory: csharp
@@ -85,3 +86,53 @@ jobs:
             --no-build \
             -c Release \
             --filter "FullyQualifiedName~BigQueryUtilsTests|FullyQualifiedName~BigQueryConnectionTests|FullyQualifiedName~BigQueryStatementTests|Category=MockServer"
+
+  native-aot:
+    name: "C# NativeAOT driver smoke tests (${{ matrix.os }})"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            rid: win-x64
+            library: adbc_driver_bigquery.dll
+          - os: ubuntu-latest
+            rid: linux-x64
+            library: adbc_driver_bigquery.so
+          - os: macos-latest
+            rid: osx-arm64
+            library: adbc_driver_bigquery.dylib
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: 'recursive'
+
+      - uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7  # v5.2.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Setup MSVC
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756  # v1
+
+      - name: Publish NativeAOT driver
+        working-directory: csharp
+        run: |
+          dotnet publish \
+            src/AdbcDrivers.BigQuery.Native/AdbcDrivers.BigQuery.Native.csproj \
+            -c Release \
+            -r "${{ matrix.rid }}" \
+            -o artifacts/native-aot
+
+      - name: Run NativeAOT smoke tests
+        working-directory: csharp
+        env:
+          ADBC_BIGQUERY_NATIVE_PATH: ${{ github.workspace }}/csharp/artifacts/native-aot/${{ matrix.library }}
+        run: |
+          dotnet test \
+            test/AdbcDrivers.BigQuery.Native.Tests/AdbcDrivers.BigQuery.Native.Tests.csproj \
+            -c Release
